@@ -99,7 +99,11 @@ cp "$SRC/neurodictate.py" "$SRC/config.json" "$SRC/requirements.txt" "$RES/"
 
 # При запуске без аргументов (так запускает Finder/Launchpad) стартуем приложение.
 # Дочерние процессы Python (-c ...) сюда не попадают.
-cat > "$CONTENTS/lib/$PY_TAG/site-packages/sitecustomize.py" <<'PY'
+# Через sitecustomize нельзя: homebrew-питон кладет свой sitecustomize в stdlib,
+# а stdlib в sys.path стоит раньше site-packages бандла - наш файл затирается
+# (на питоне с python.org такой проблемы нет). .pth исполняется site.py при
+# добавлении site-packages, до всяких sitecustomize, поэтому работает всегда.
+cat > "$CONTENTS/lib/$PY_TAG/site-packages/neurodictate_boot.py" <<'PY'
 import os
 import sys
 
@@ -111,6 +115,7 @@ if sys.argv == [""]:
     runpy.run_path(os.path.join(sys.prefix, "Resources", "neurodictate.py"), run_name="__main__")
     os._exit(0)  # sys.exit здесь нельзя - Python еще инициализируется
 PY
+echo "import neurodictate_boot" > "$CONTENTS/lib/$PY_TAG/site-packages/zz_neurodictate.pth"
 
 # ---------- главный исполняемый файл = интерпретатор ----------
 # Берем «графический» бинарник из Python.app (консольный python3.11 при старте
